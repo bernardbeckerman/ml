@@ -1,0 +1,44 @@
+import pdb
+import numpy as np
+import sklearn.base as base
+import json
+import pandas as pd
+import dill
+
+#load file and convert to pandas df
+with open('../data/yelp_train_academic_dataset_business.json', 'r') as f:
+    df = map(json.loads,f)
+df = pd.DataFrame(df)
+
+#Estimator class
+class Estimator(base.BaseEstimator, base.RegressorMixin):
+#    def __init__(self, ...):
+        # initialization code
+    def fit(self, X, y):
+        self.cities_mean = pd.concat([X,y],axis=1).groupby('city')['stars'].mean()
+        self.mean_all = y.mean()
+        
+    def predict(self, X):
+        import numpy as np
+        city = X['city']
+        if type(city) == type(''):
+            if city in self.cities_mean:
+                return np.asarray[[self.cities_mean[city]]]
+            else:
+                return np.asarray[[self.mean_all]]
+        else:
+            Xpre = []
+            for index, row in city.iteritems():
+                if row in self.cities_mean:
+                    Xpre.append(self.cities_mean[row])
+                else:
+                    Xpre.append(self.mean_all)
+            return np.asarray(Xpre)
+
+est = Estimator()
+est.fit(df.drop('stars',1),df['stars'])
+
+with open('est.dill', "wb") as f:
+    dill.dump(est,f)
+
+print(est.predict(pd.DataFrame([{'city':'Pheonix'},{'city':'Atlanta'}])))
